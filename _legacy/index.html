@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ANW · 관리자 대시보드</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root{
+      --bg:#0b1220; --card:#121a2b; --line:#22304a; --muted:#b9c8e8; --text:#e8eefc;
+      --btn:#4f7cff; --btn2:#26324a; --danger:#ff6b6b; --ok:#40d37f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+    a{color:#9fb6ff;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1200px;margin:0 auto;padding:26px}
+    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+    .title{font-weight:900;font-size:18px}
+    .sub{color:var(--muted);font-size:12px;line-height:1.5;margin-top:6px}
+    .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .pill{padding:8px 10px;border:1px solid #2a3a5a;border-radius:999px;background:#0f172a;color:#cfe0ff;font-size:12px}
+    .grid{display:grid;grid-template-columns: 1.2fr .8fr; gap:18px}
+    .card{background:var(--card);border-radius:18px;padding:18px;border:1px solid rgba(255,255,255,.06);box-shadow:0 0 40px rgba(0,0,0,.35)}
+    h2{margin:0 0 10px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,button{border-radius:12px;border:1px solid rgba(255,255,255,.10)}
+    input{background:#020617;color:#fff;padding:12px 12px;min-width:240px}
+    button{padding:12px 14px;font-weight:900;cursor:pointer;color:#fff}
+    .primary{background:var(--btn);border-color:transparent}
+    .secondary{background:var(--btn2);border-color:transparent}
+    .danger{background:#3a1414;border-color:rgba(255,255,255,.12);color:#ffb3b3}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .status{margin-top:10px;font-size:12px;color:#9fb6ff}
+    .note{margin-top:10px;font-size:12px;color:#91a3c6;line-height:1.55}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+    th,td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{color:#cfe0ff;text-align:left;font-weight:900}
+    td{color:#dbe6ff}
+    .mini{font-size:12px;color:#91a3c6}
+    .btnlink{padding:8px 10px;border-radius:10px;background:#0f172a;border:1px solid #23304a;color:#cfe0ff;font-weight:900}
+    .btnlink:hover{filter:brightness(1.08)}
+    .detailBox{min-height:240px;background:#0f172a;border:1px solid #23304a;border-radius:14px;padding:12px;white-space:pre-wrap}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+    .kpi .pill strong{color:#fff}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} input{min-width:180px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="title">ANW · 관리자 대시보드 <span class="mini">(/admin.html)</span></div>
+        <div class="sub">
+          ✅ Netlify Forms 문의를 안전하게 조회/다운로드하는 관리자 화면입니다.<br/>
+          ⚠️ 데이터 조회는 서버리스 함수에서만 수행되며, 브라우저는 “관리자 키”만 헤더로 전달합니다.
+        </div>
+        <div class="kpi">
+          <div class="pill">폼 이름(FORM_NAME): <strong id="formNameView">contact</strong></div>
+          <div class="pill">API: <strong>/api/admin-submissions</strong></div>
+          <div class="pill">상태: <strong id="authState">잠김</strong></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <a class="btnlink" href="/">메인</a>
+        <a class="btnlink" href="/thanks.html">접수완료(/thanks.html)</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: 리스트 -->
+      <div class="card">
+        <h2>문의 목록</h2>
+        <div class="row">
+          <input id="adminKey" placeholder="관리자 키 입력" autocomplete="off" />
+          <button class="primary" id="loginBtn" type="button" onclick="login()">관리자 로그인</button>
+          <button class="secondary" id="loadBtn" type="button" onclick="loadSubmissions()" disabled>불러오기</button>
+          <button class="secondary" id="csvBtn" type="button" onclick="downloadCSV()" disabled>CSV 다운로드</button>
+          <button class="danger" id="logoutBtn" type="button" onclick="logout()" disabled>로그아웃</button>
+        </div>
+
+        <div class="status" id="statusText">상태: 대기 중…</div>
+
+        <div class="note">
+          ✔ “진짜 수집”은 <b>anw.kr</b> 도메인에서 폼 제출해야 Forms에 저장됩니다.<br/>
+          ✔ 조회/다운로드는 <b>관리자 키</b>가 맞아야만 가능합니다.
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px">접수일</th>
+              <th>기관/회사</th>
+              <th>담당자</th>
+              <th>이메일</th>
+              <th style="width:140px">요청 기능</th>
+              <th style="width:70px">보기</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="6" class="mini">아직 불러온 데이터가 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RIGHT: 상세 -->
+      <div class="card">
+        <h2>상세 보기</h2>
+        <div class="sub">목록에서 “보기”를 누르면 여기에 표시됩니다.</div>
+        <div class="detailBox" id="detailBox">선택된 항목 없음</div>
+
+        <div class="note" style="margin-top:12px">
+          (다음 확장) 상태 변경/메모 저장/담당자 배정이 필요하면 DB(예: Supabase) 연결로 “진짜 CRM”로 업그레이드 가능합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ✅ 여기만 맞추면 됩니다 (현재 Netlify 환경변수도 FORM_NAME=contact 로 설정하셨으니 그대로 OK)
+  const FORM_NAME = "contact"; // 표시용(서버는 env FORM_NAME 사용)
+  document.getElementById("formNameView").textContent = FORM_NAME;
+
+  const API_URL = "/api/admin-submissions"; // 이미 /api/admin-submissions?ping=1 성공하셨던 주소 기준
+  let submissions = [];
+  let adminKey = "";
+
+  function setStatus(msg){ document.getElementById("statusText").textContent = "상태: " + msg; }
+
+  function setAuthed(on){
+    document.getElementById("authState").textContent = on ? "로그인됨" : "잠김";
+    document.getElementById("loadBtn").disabled = !on;
+    document.getElementById("csvBtn").disabled = !on;
+    document.getElementById("logoutBtn").disabled = !on;
+    document.getElementById("loginBtn").disabled = on;
+    document.getElementById("adminKey").disabled = on;
+  }
+
+  async function login(){
+    const key = (document.getElementById("adminKey").value || "").trim();
+    if(!key) return alert("관리자 키를 입력하세요.");
+
+    setStatus("키 확인 중…");
+    try{
+      // ping은 인증이 없을 수도 있어, 실제 호출로 확인
+      const res = await fetch(API_URL + "?limit=1", {
+        headers: { "x-admin-key": key }
+      });
+      const data = await res.json();
+
+      if(res.ok && data && data.ok){
+        adminKey = key;
+        setAuthed(true);
+        setStatus("로그인 성공 ✅ 이제 ‘불러오기’를 누르세요.");
+      }else{
+        setAuthed(false);
+        setStatus("로그인 실패");
+        alert("관리자 키가 올바르지 않거나, 서버 환경변수가 준비되지 않았습니다.\n\n응답: " + JSON.stringify(data));
+      }
+    }catch(e){
+      setAuthed(false);
+      setStatus("로그인 실패(네트워크/함수 오류)");
+      alert("서버 함수 호출에 실패했습니다.\n\n1) /api/admin-submissions?ping=1 이 열리는지 확인\n2) Netlify Functions 배포가 되었는지 확인");
+    }
+  }
+
+  function logout(){
+    adminKey = "";
+    submissions = [];
+    renderTable([]);
+    document.getElementById("detailBox").textContent = "선택된 항목 없음";
+    document.getElementById("adminKey").value = "";
+    setAuthed(false);
+    setStatus("로그아웃 완료");
+  }
+
+  async function loadSubmissions(){
+    if(!adminKey) return alert("먼저 관리자 로그인 하세요.");
+    setStatus("Netlify Forms 데이터 불러오는 중…");
+
+    try{
+      const res = await fetch(API_URL + "?limit=200", {
+        headers: { "x-admin-key": adminKey }
+      });
+      const data = await res.json();
+
+      if(!(res.ok && data && data.ok)){
+        setStatus("불러오기 실패");
+        alert("불러오기 실패:\n" + JSON.stringify(data));
+        return;
+      }
+
+      submissions = Array.isArray(data.items) ? data.items : [];
+      renderTable(submissions);
+      setStatus("불러오기 완료 ✅ (" + submissions.length + "건)");
+    }catch(e){
+      setStatus("불러오기 실패(함수 오류)");
+      alert("불러오기 중 오류가 발생했습니다.");
+    }
+  }
+
+  function renderTable(items){
+    const tbody = document.getElementById("tbody");
+    if(!items || items.length===0){
+      tbody.innerHTML = "<tr><td colspan='6' class='mini'>불러온 데이터가 없습니다.</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = items.map((x, idx)=>{
+      const created = x.created_at ? new Date(x.created_at).toLocaleString() : "-";
+      const d = x.data || {};
+      const company = esc(d.company || "");
+      const name = esc(d.name || "");
+      const email = esc(d.email || "");
+      const plan = esc(d.plan || "");
+      return `
+        <tr>
+          <td class="mini">${esc(created)}</td>
+          <td>${company}</td>
+          <td>${name}</td>
+          <td>${email}</td>
+          <td>${plan}</td>
+          <td><button class="btnlink" type="button" onclick="viewDetail(${idx})">보기</button></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function viewDetail(i){
+    const x = submissions[i];
+    if(!x) return;
+    const d = x.data || {};
+    const lines = [
+      `접수일: ${x.created_at ? new Date(x.created_at).toLocaleString() : "-"}`,
+      `폼ID: ${x.form_id || "-"}`,
+      `제출ID: ${x.id || "-"}`,
+      "-------------------------",
+      `기관/회사: ${d.company || "-"}`,
+      `담당자: ${d.name || "-"}`,
+      `연락처: ${d.phone || "-"}`,
+      `이메일: ${d.email || "-"}`,
+      `요청 기능: ${d.plan || "-"}`,
+      "-------------------------",
+      `문의 내용:\n${d.message || "-"}`,
+    ];
+    document.getElementById("detailBox").textContent = lines.join("\n");
+  }
+
+  function downloadCSV(){
+    if(!submissions || submissions.length===0) return alert("다운로드할 데이터가 없습니다. 먼저 ‘불러오기’를 누르세요.");
+    const header = ["created_at","company","name","phone","email","plan","message"];
+    const rows = submissions.map(x=>{
+      const d = x.data || {};
+      return [
+        x.created_at || "",
+        d.company || "",
+        d.name || "",
+        d.phone || "",
+        d.email || "",
+        d.plan || "",
+        (d.message || "").replace(/\r?\n/g," ")
+      ];
+    });
+
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "anw_submissions.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // 초기 상태
+  setAuthed(false);
+  setStatus("관리자 키를 입력하고 ‘관리자 로그인’을 누르세요.");
+</script>
+</body>
+</html>

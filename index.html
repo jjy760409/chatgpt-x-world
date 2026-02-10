@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ANW - 사기·피싱·스미싱 실시간 검사 서비스. URL, 계좌번호, 전화번호의 위험 여부를 즉시 확인하세요." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://anw.kr/" />
+  <title>ANW · 사기·피싱 실시간 검사</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    // PayPal Client ID will be injected by Netlify Function
+    fetch("/api/env-config").then(r => r.json()).then(d => {
+      window.__PAYPAL_CLIENT_ID__ = d.paypalClientId || "test";
+    }).catch(() => { window.__PAYPAL_CLIENT_ID__ = "test" });
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

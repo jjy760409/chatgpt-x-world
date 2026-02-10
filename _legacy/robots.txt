@@ -1,0 +1,3 @@
+Crawl-delay: 2
+
+Sitemap: https://anw.kr/sitemap.xml

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>문의하기</title>
+</head>
+<body>
+  <h1>문의하기</h1>
+
+  <!-- Netlify Forms 핵심 -->
+  <form name="contact" method="POST" data-netlify="true">
+    <input type="hidden" name="form-name" value="contact" />
+
+    <p>
+      <label>이름 <input name="name" required /></label>
+    </p>
+    <p>
+      <label>이메일 <input name="email" type="email" required /></label>
+    </p>
+    <p>
+      <label>메시지 <textarea name="message" required></textarea></label>
+    </p>
+
+    <button type="submit">보내기</button>
+  </form>
+</body>
+</html>
