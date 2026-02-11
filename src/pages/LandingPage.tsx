@@ -1,16 +1,18 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle, Crown } from "lucide-react"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { useSubscription } from "@/hooks/useSubscription"
 
 export default function LandingPage() {
     const [url, setUrl] = useState("")
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string }>(null)
+    const { subscription, isPro } = useSubscription()
 
     const handleCheck = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -18,10 +20,15 @@ export default function LandingPage() {
         setIsChecking(true)
         setResult(null)
 
+        const headers: HeadersInit = { "Content-Type": "application/json" }
+        if (subscription?.token) {
+            headers["Authorization"] = `Bearer ${subscription.token}`
+        }
+
         try {
             const res = await fetch("/api/analyze", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify({ text: url.trim() }),
             })
             const data = await res.json()
@@ -78,8 +85,13 @@ export default function LandingPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
                         >
-                            <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 mb-4">
-                                v2.0 Beta Now Live
+                            <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 mb-4 gap-2">
+                                <span>v2.0 Beta Now Live</span>
+                                {isPro && (
+                                    <span className="flex items-center gap-1 bg-yellow-400 text-black px-1.5 py-0.5 rounded-full text-[10px]">
+                                        <Crown className="w-3 h-3" /> Pro User
+                                    </span>
+                                )}
                             </div>
                             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
                                 Detect Scams <br className="hidden sm:inline" />

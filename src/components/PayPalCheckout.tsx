@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { useSubscription } from "@/hooks/useSubscription"
 
 declare global {
     interface Window {
@@ -17,6 +18,7 @@ export default function PayPalCheckout({ planId, planName, amount }: PayPalCheck
     const paypalRef = useRef<HTMLDivElement>(null)
     const [status, setStatus] = useState<"loading" | "ready" | "processing" | "success" | "error">("loading")
     const [errorMsg, setErrorMsg] = useState("")
+    const { saveSubscription } = useSubscription()
 
     useEffect(() => {
         // Load PayPal SDK dynamically
@@ -64,6 +66,15 @@ export default function PayPalCheckout({ planId, planName, amount }: PayPalCheck
                         })
                         const result = await res.json()
                         if (result.ok) {
+                            // Save subscription token
+                            if (result.subscriptionToken) {
+                                saveSubscription(
+                                    result.subscriptionToken,
+                                    result.plan || "pro",
+                                    result.payerEmail || "",
+                                    result.transactionId || ""
+                                )
+                            }
                             setStatus("success")
                         } else {
                             throw new Error(result.error || "Payment capture failed")
@@ -116,12 +127,12 @@ export default function PayPalCheckout({ planId, planName, amount }: PayPalCheck
                 <p className="text-muted-foreground mb-4">
                     Welcome to ANW {planName}. Your protection is now active.
                 </p>
-                <a
-                    href="/"
+                <button
+                    onClick={() => window.location.href = "/"}
                     className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-10 px-4 py-2 hover:bg-primary/90"
                 >
-                    Start Using ANW
-                </a>
+                    Start Using Pro Features
+                </button>
             </div>
         )
     }

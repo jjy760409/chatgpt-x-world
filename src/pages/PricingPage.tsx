@@ -59,9 +59,12 @@ const plans = [
     },
 ]
 
+import { useSubscription } from "@/hooks/useSubscription"
+
 export default function PricingPage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const [showCheckout, setShowCheckout] = useState(false)
+    const { subscription } = useSubscription()
 
     const handleSelectPlan = (planId: string) => {
         if (planId === "free") {
@@ -140,8 +143,8 @@ export default function PricingPage() {
                     >
                         <Card
                             className={`relative h-full flex flex-col ${plan.popular
-                                    ? "border-blue-500 shadow-lg shadow-blue-500/20 scale-105"
-                                    : "border-border"
+                                ? "border-blue-500 shadow-lg shadow-blue-500/20 scale-105"
+                                : "border-border"
                                 }`}
                         >
                             {plan.popular && (
@@ -184,9 +187,18 @@ export default function PricingPage() {
                                     variant={plan.popular ? "default" : "outline"}
                                     size="lg"
                                     onClick={() => handleSelectPlan(plan.id)}
+                                    disabled={subscription?.plan === plan.id}
                                 >
-                                    {plan.cta}
-                                    <ArrowRight className="h-4 w-4 ml-2" />
+                                    {subscription?.plan === plan.id ? (
+                                        <span className="flex items-center gap-2">
+                                            <Check className="h-4 w-4" /> Current Plan
+                                        </span>
+                                    ) : (
+                                        <>
+                                            {plan.cta}
+                                            <ArrowRight className="h-4 w-4 ml-2" />
+                                        </>
+                                    )}
                                 </Button>
                             </CardContent>
                         </Card>

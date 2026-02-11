@@ -77,16 +77,40 @@ exports.handler = async (event) => {
         // Extract payment details
         const capture = captureData.purchase_units?.[0]?.payments?.captures?.[0];
         const payerEmail = captureData.payer?.email_address;
+        const amountValue = capture?.amount?.value;
+
+        // --- Subscription Token Generation ---
+        const { createToken } = require("./subscription-token");
+        // In production, use process.env.SUBSCRIPTION_SECRET
+        const secret = process.env.SUBSCRIPTION_SECRET || "anw-secret-key-123";
+
+        // Determine plan based on amount (Simple logic for demo)
+        // Free: 0, Pro: 9.99, Enterprise: 29.99
+        let plan = "pro";
+        if (amountValue >= 29) plan = "enterprise";
+
+        const tokenPayload = {
+            email: payerEmail,
+            plan: plan,
+            orderId: capture?.id,
+            expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days valid
+        };
+
+        const subscriptionToken = createToken(tokenPayload, secret);
+        // -------------------------------------
 
         return json(200, {
             ok: true,
             status: captureData.status,
             transactionId: capture?.id || null,
             payerEmail: payerEmail || null,
-            amount: capture?.amount?.value || null,
+            amount: amountValue || null,
             currency: capture?.amount?.currency_code || null,
+            subscriptionToken: subscriptionToken, // Send token to frontend
+            plan: plan
         });
     } catch (e) {
+        console.error("Capture Error:", e);
         return json(500, { ok: false, error: "Server error", detail: String(e?.message || e) });
     }
 };

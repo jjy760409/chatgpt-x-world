@@ -24,6 +24,27 @@ exports.handler = async (event) => {
     return json(400, { ok: false, error: "text field is required" });
   }
 
+  // --- Subscription Verification ---
+  const { verifyToken } = require("./subscription-token");
+  const secret = process.env.SUBSCRIPTION_SECRET || "anw-secret-key-123";
+  let isPro = false;
+
+  const authHeader = event.headers["authorization"] || event.headers["Authorization"];
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    try {
+      const payload = verifyToken(token, secret);
+      isPro = true; // Token is valid -> Pro User
+      console.log(`[Analyze] Verified Pro User: ${payload.email} (${payload.plan})`);
+    } catch (e) {
+      console.warn("[Analyze] Invalid token:", e.message);
+    }
+  }
+
+  // TODO: Add rate limiting for non-pro users here if needed
+  // For now, we trust the frontend state or just log it
+  // ---------------------------------
+
   const API_KEY = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
 
   // ✅ API 키가 없으면 규칙 기반 로컬 분석으로 폴백
