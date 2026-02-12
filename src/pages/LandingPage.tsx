@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useSubscription } from "@/hooks/useSubscription"
+import { LimitReachedModal } from "@/components/LimitReachedModal"
 
 export default function LandingPage() {
     const [url, setUrl] = useState("")
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string }>(null)
+    const [showLimitModal, setShowLimitModal] = useState(false)
     const { subscription, isPro } = useSubscription()
 
     const handleCheck = async (e: React.FormEvent) => {
@@ -32,6 +34,13 @@ export default function LandingPage() {
                 body: JSON.stringify({ text: url.trim() }),
             })
             const data = await res.json()
+
+            // Handle Rate Limit Upgrade Trigger
+            if (data.upgrade) {
+                setShowLimitModal(true)
+                return
+            }
+
             if (data.ok) {
                 setResult({ level: data.level, oneLine: data.oneLine, reason: data.reason })
             } else {
@@ -75,6 +84,7 @@ export default function LandingPage() {
     return (
         <div className="flex flex-col min-h-screen">
             <SEO />
+            <LimitReachedModal isOpen={showLimitModal} onClose={() => setShowLimitModal(false)} />
             {/* Hero Section */}
             <section className="relative py-20 md:py-32 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-background to-background -z-10" />

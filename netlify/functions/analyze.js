@@ -41,9 +41,27 @@ exports.handler = async (event) => {
     }
   }
 
-  // TODO: Add rate limiting for non-pro users here if needed
-  // For now, we trust the frontend state or just log it
-  // ---------------------------------
+  // --- Rate Limiting for Free Users ---
+  if (!isPro) {
+    const { checkRateLimit } = require("./rate-limit");
+    const clientIp = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown-ip"; // Netlify specific header
+
+    // Allow 10 scans per day for free users
+    const limitResult = checkRateLimit(clientIp, 10);
+
+    if (!limitResult.allowed) {
+      console.log(`[Analyze] Rate limit exceeded for IP: ${clientIp}`);
+      return json(429, {
+        ok: false,
+        error: "Daily free limit reached",
+        upgrade: true, // Signal frontend to show upsell modal
+        remaining: 0
+      });
+    }
+
+    // Add remaining count to headers (optional, handled in body for simplicity here)
+  }
+  // ------------------------------------
 
   const API_KEY = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
 
