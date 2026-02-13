@@ -26,20 +26,28 @@ export default function Layout() {
             <main className="flex-1">
                 <Outlet />
             </main>
-            <footer className="py-6 md:px-8 md:py-0">
-                <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-                    <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                        Built by{" "}
-                        <a
-                            href="#"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-medium underline underline-offset-4"
-                        >
-                            Anti-Gravity
-                        </a>
-                        . The source code is available on GitHub.
-                    </p>
+            <footer className="py-8 border-t border-border/40 bg-background/95">
+                <div className="container flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-center md:text-left space-y-2">
+                        <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-lg">
+                            <ShieldAlert className="h-5 w-5 text-primary" />
+                            <span>ANW (Anti-Scam Web)</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            &copy; 2026 ANW (anw.kr). All rights reserved.
+                        </p>
+                        <p className="text-xs text-muted-foreground/60 max-w-md">
+                            The ANW App, Website, and domain 'anw.kr' are the intellectual property of ANW.
+                            Unauthorized reproduction or distribution is strictly prohibited.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+                        <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+                        <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+                        <Link to="/disclaimer" className="hover:text-foreground transition-colors">Disclaimer</Link>
+                        <Link to="/about" className="hover:text-foreground transition-colors">About Us</Link>
+                    </div>
                 </div>
             </footer>
         </div>
