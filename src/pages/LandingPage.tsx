@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { useSubscription } from "@/hooks/useSubscription"
 import { LimitReachedModal } from "@/components/LimitReachedModal"
+import { ReportAction } from "@/components/ReportAction"
 
 export default function LandingPage() {
     const [url, setUrl] = useState("")
     const [isChecking, setIsChecking] = useState(false)
-    const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string }>(null)
+    const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string; category?: string }>(null)
     const [showLimitModal, setShowLimitModal] = useState(false)
     const { subscription, isPro } = useSubscription()
 
@@ -42,7 +43,12 @@ export default function LandingPage() {
             }
 
             if (data.ok) {
-                setResult({ level: data.level, oneLine: data.oneLine, reason: data.reason })
+                setResult({
+                    level: data.level,
+                    oneLine: data.oneLine,
+                    reason: data.reason,
+                    category: data.category
+                })
             } else {
                 setResult({ level: "WARN", oneLine: "분석 중 오류가 발생했습니다.", reason: data.error || "" })
             }
@@ -153,6 +159,8 @@ export default function LandingPage() {
                                     {result.reason && (
                                         <p className="text-sm mt-2 ml-8 opacity-80">{result.reason}</p>
                                     )}
+                                    {/* Smart Reporting Action */}
+                                    <ReportAction category={result.category || ""} level={result.level} />
                                 </motion.div>
                             )}
                         </motion.div>
