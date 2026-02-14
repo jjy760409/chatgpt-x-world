@@ -3,7 +3,7 @@ import { ShieldAlert, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "react-i18next"
 import { usePWA } from "@/hooks/usePWA"
-import { Download, Menu } from "lucide-react"
+import { Download } from "lucide-react"
 
 export default function Layout() {
     const { i18n } = useTranslation();
