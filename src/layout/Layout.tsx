@@ -32,7 +32,6 @@ export default function Layout() {
                         >
                             <Globe className="h-4 w-4" />
                             {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
-                            {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
                         </Button>
 
                         {isInstallable && (
