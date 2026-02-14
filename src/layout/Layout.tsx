@@ -2,9 +2,12 @@ import { Link, Outlet } from "react-router-dom"
 import { ShieldAlert, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "react-i18next"
+import { usePWA } from "@/hooks/usePWA"
+import { Download, Menu } from "lucide-react"
 
 export default function Layout() {
     const { i18n } = useTranslation();
+    const { isInstallable, installApp } = usePWA();
 
     const toggleLanguage = () => {
         const newLang = i18n.language.startsWith('ko') ? 'en' : 'ko';
@@ -29,7 +32,21 @@ export default function Layout() {
                         >
                             <Globe className="h-4 w-4" />
                             {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
+                            {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
                         </Button>
+
+                        {isInstallable && (
+                            <Button
+                                onClick={installApp}
+                                variant="outline"
+                                size="sm"
+                                className="hidden md:flex gap-2 border-primary/50 text-primary hover:bg-primary/10 animate-pulse"
+                            >
+                                <Download className="h-4 w-4" />
+                                App
+                            </Button>
+                        )}
+
                         <Link to="/pricing">
                             <Button variant="ghost" size="sm">Pro Plan</Button>
                         </Link>

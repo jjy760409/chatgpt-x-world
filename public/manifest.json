@@ -1,0 +1,27 @@
+{
+    "name": "ANW 사기 탐지 네트워크",
+    "short_name": "ANW",
+    "description": "AI 기반 실시간 스미싱/사기 탐지 및 예방 플랫폼",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#020817",
+    "theme_color": "#020817",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "512x512"
+        },
+        {
+            "src": "/icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any"
+        }
+    ]
+}
