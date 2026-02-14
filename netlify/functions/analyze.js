@@ -88,7 +88,7 @@ exports.handler = async (event) => {
     if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
     else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
     // ----------------------
-    return json(200, { ok: true, source: "local", ...result });
+    return json(200, { ok: true, source: "local", version: "debug-verify", ...result });
   }
 
   // ✅ Google Gemini API 호출
@@ -138,7 +138,7 @@ exports.handler = async (event) => {
       if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
       else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
       // ----------------------
-      return json(200, { ok: true, source: "local-fallback", ...result });
+      return json(200, { ok: true, source: "local-fallback", version: "debug-verify", ...result });
     }
 
     const geminiData = await geminiRes.json();
@@ -205,7 +205,7 @@ exports.handler = async (event) => {
     if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
     else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
     // ----------------------
-    return json(200, { ok: true, source: "local-fallback", ...result });
+    return json(200, { ok: true, source: "local-fallback", version: "debug-verify", ...result });
   }
 };
 
