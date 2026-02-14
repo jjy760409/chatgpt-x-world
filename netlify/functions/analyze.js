@@ -84,7 +84,9 @@ exports.handler = async (event) => {
   if (!API_KEY) {
     const result = localAnalyze(text.trim());
     // --- TELEGRAM ALERT ---
-    await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    const tgRes = await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
+    else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
     // ----------------------
     return json(200, { ok: true, source: "local", ...result });
   }
@@ -132,7 +134,9 @@ exports.handler = async (event) => {
       // 폴백: 로컬 분석
       const result = localAnalyze(text.trim());
       // --- TELEGRAM ALERT ---
-      await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+      const tgRes = await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+      if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
+      else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
       // ----------------------
       return json(200, { ok: true, source: "local-fallback", ...result });
     }
@@ -197,7 +201,9 @@ exports.handler = async (event) => {
     console.error("analyze error:", e);
     const result = localAnalyze(text.trim());
     // --- TELEGRAM ALERT ---
-    await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    const tgRes = await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    if (tgRes && tgRes.status) result.reason += ` (TG: ${tgRes.status})`;
+    else if (tgRes && tgRes.error) result.reason += ` (TG Err: ${tgRes.error})`;
     // ----------------------
     return json(200, { ok: true, source: "local-fallback", ...result });
   }
@@ -274,12 +280,11 @@ function localAnalyze(text) {
 // --- Telegram Notification Helper ---
 // --- Telegram Notification Helper ---
 async function sendTelegramAlert(text, result, ip, country) {
-  const https = require('https'); // Use native https to avoid verify fetch issues
+  const https = require('https');
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8545903698:AAEhEvAkVnYSLc8JH084zUc0f-klX4cf9YE";
   const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "8385241395";
 
-  // Only alert on threats (WARN, BAD)
-  if (result.level === "OK") return;
+  if (result.level === "OK") return { sent: false };
 
   const emoji = result.level === "BAD" ? "🚨" : "⚠️";
   const message = `${emoji} [ANW Alert] Threat Detected!
@@ -306,15 +311,14 @@ Reason: ${result.oneLine}`;
     }
   };
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const req = https.request(options, (res) => {
-      // console.log(`Telegram Status: ${res.statusCode}`);
-      resolve();
+      resolve({ sent: true, status: res.statusCode });
     });
 
     req.on('error', (error) => {
       console.error("Telegram Error:", error);
-      resolve(); // Resolve anyway to not block response
+      resolve({ sent: false, error: error.message });
     });
 
     req.write(payload);
