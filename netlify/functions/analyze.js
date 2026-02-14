@@ -281,8 +281,9 @@ function localAnalyze(text) {
 // --- Telegram Notification Helper ---
 async function sendTelegramAlert(text, result, ip, country) {
   const https = require('https');
-  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8545903698:AAEhEvAkVnYSLc8JH084zUc0f-klX4cf9YE";
-  const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "8385241395";
+  // Force hardcoded tokens for debugging (ignore Env Vars for now)
+  const BOT_TOKEN = "8545903698:AAEhEvAkVnYSLc8JH084zUc0f-klX4cf9YE";
+  const CHAT_ID = "8385241395";
 
   if (result.level === "OK") return { sent: false };
 
