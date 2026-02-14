@@ -272,7 +272,9 @@ function localAnalyze(text) {
 }
 
 // --- Telegram Notification Helper ---
+// --- Telegram Notification Helper ---
 async function sendTelegramAlert(text, result, ip, country) {
+  const https = require('https'); // Use native https to avoid verify fetch issues
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8545903698:AAEhEvAkVnYSLc8JH084zUc0f-klX4cf9YE";
   const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "8385241395";
 
@@ -288,13 +290,34 @@ Input: ${text.substring(0, 100)}
 IP: ${ip} (${country})
 Reason: ${result.oneLine}`;
 
-  try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+  const payload = JSON.stringify({
+    chat_id: CHAT_ID,
+    text: message
+  });
+
+  const options = {
+    hostname: 'api.telegram.org',
+    port: 443,
+    path: `/bot${BOT_TOKEN}/sendMessage`,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload)
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      // console.log(`Telegram Status: ${res.statusCode}`);
+      resolve();
     });
-  } catch (e) {
-    console.error("Telegram Error:", e);
-  }
+
+    req.on('error', (error) => {
+      console.error("Telegram Error:", error);
+      resolve(); // Resolve anyway to not block response
+    });
+
+    req.write(payload);
+    req.end();
+  });
 }
