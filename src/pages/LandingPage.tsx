@@ -11,6 +11,7 @@ import { LimitReachedModal } from "@/components/LimitReachedModal"
 import { ReportAction } from "@/components/ReportAction"
 import { getDeviceId } from "@/lib/fingerprint"
 import { useTranslation } from "react-i18next"
+import { ShareButtons } from "@/components/ShareButtons"
 
 export default function LandingPage() {
     const { t } = useTranslation();
@@ -178,6 +179,9 @@ export default function LandingPage() {
                                     )}
                                     {/* Smart Reporting Action */}
                                     <ReportAction category={result.category || ""} level={result.level} />
+
+                                    {/* Viral Share Buttons */}
+                                    <ShareButtons />
                                 </motion.div>
                             )}
                         </motion.div>

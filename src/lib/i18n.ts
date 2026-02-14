@@ -36,6 +36,12 @@ i18n
                         call: "Call Now",
                         online: "Report Online",
                         desc: "Reporting prevents further victims."
+                    },
+                    viral: {
+                        title: "Warn Others",
+                        desc: "Prevent your friends from being scammed. Share this alert.",
+                        message: "🚨 I just blocked a scam attempt using ANW! Check your safety now: ",
+                        copy_toast: "Link copied to clipboard!"
                     }
                 }
             },
@@ -63,6 +69,12 @@ i18n
                         call: "전화 신고",
                         online: "온라인 신고",
                         desc: "신고는 추가 피해를 막을 수 있습니다."
+                    },
+                    viral: {
+                        title: "가족과 친구에게 알리기",
+                        desc: "지인들이 사기 피해를 입지 않도록 이 결과를 공유하세요.",
+                        message: "🚨 방금 ANW에서 스미싱을 차단했습니다! 지금 바로 안전을 확인하세요: ",
+                        copy_toast: "링크가 복사되었습니다!"
                     }
                 }
             }
