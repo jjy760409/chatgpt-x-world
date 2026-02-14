@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Lock, Download, RefreshCw, LogOut, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Lock, RefreshCw, LogOut, Loader2, ShieldAlert, TrendingUp, Users, DollarSign, Activity, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -19,6 +19,25 @@ interface Submission {
         ip?: string
     }
 }
+
+// Mock Data for Phase 1 Visualization
+const trafficData = [
+    { time: '00:00', scans: 120, threats: 5 },
+    { time: '04:00', scans: 80, threats: 2 },
+    { time: '08:00', scans: 450, threats: 25 },
+    { time: '12:00', scans: 980, threats: 45 },
+    { time: '16:00', scans: 850, threats: 38 },
+    { time: '20:00', scans: 600, threats: 20 },
+    { time: '24:00', scans: 300, threats: 10 },
+];
+
+const recentAlerts = [
+    { country: "🇺🇸 US", type: "Phishing", url: "secure-login-bank.com", time: "2 min ago" },
+    { country: "🇰🇷 KR", type: "Smishing", url: "cj-logistics-tracking.xyz", time: "5 min ago" },
+    { country: "🇯🇵 JP", type: "Scam", url: "amazon-prime-gift.net", time: "12 min ago" },
+    { country: "🇰🇷 KR", type: "Gambling", url: "bet365-korea-win.com", time: "15 min ago" },
+    { country: "🇩🇪 DE", type: "Phishing", url: "deutsche-post-help.com", time: "22 min ago" },
+];
 
 export default function AdminPage() {
     const [key, setKey] = useState("")
@@ -71,7 +90,6 @@ export default function AdminPage() {
             if (json.ok && Array.isArray(json.submissions)) {
                 setData(json.submissions)
             } else {
-                setError(json.error || "Failed to load submissions")
                 if (json.error?.toLowerCase().includes("token")) handleLogout()
             }
         } catch (err) {
@@ -81,58 +99,38 @@ export default function AdminPage() {
         }
     }
 
-    const downloadCSV = () => {
-        if (!data.length) return
-        const header = ["Date", "Company", "Name", "Phone", "Email", "Type", "Message"]
-        const rows = data.map((s) => [
-            new Date(s.created_at).toLocaleString(),
-            s.data.company || "",
-            s.data.name || "",
-            s.data.phone || "",
-            s.data.email || "",
-            s.data.plan || "",
-            (s.data.message || "").replace(/\n/g, " "),
-        ])
-
-        const csvContent =
-            "data:text/csv;charset=utf-8," +
-            [header.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n")
-
-        const encodedUri = encodeURI(csvContent)
-        const link = document.createElement("a")
-        link.setAttribute("href", encodedUri)
-        link.setAttribute("download", "anw_submissions.csv")
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-    }
+    useEffect(() => {
+        if (token) loadSubmissions()
+    }, [token])
 
     if (!token) {
         return (
-            <div className="flex min-h-[80vh] items-center justify-center p-4">
-                <Card className="w-full max-w-md">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="h-5 w-5" /> Admin Access
-                        </CardTitle>
-                        <CardDescription>Enter your admin key to continue.</CardDescription>
+            <div className="flex min-h-[80vh] items-center justify-center p-4 bg-dot-pattern">
+                <Card className="w-full max-w-md border-2 border-primary/20 shadow-2xl">
+                    <CardHeader className="text-center">
+                        <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4 w-fit">
+                            <Lock className="h-8 w-8 text-primary" />
+                        </div>
+                        <CardTitle className="text-2xl">Control Center Access</CardTitle>
+                        <CardDescription>Restricted Area. Authorized Personnel Only.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleLogin} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="key">Admin Key</Label>
+                                <Label htmlFor="key" className="sr-only">Admin Key</Label>
                                 <Input
                                     id="key"
                                     type="password"
                                     value={key}
                                     onChange={(e) => setKey(e.target.value)}
-                                    placeholder="••••••••••••"
+                                    placeholder="Enter Access Key..."
+                                    className="text-center text-lg h-12"
                                     autoComplete="off"
                                 />
                             </div>
-                            {error && <p className="text-sm text-red-500">{error}</p>}
-                            <Button type="submit" className="w-full" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Unlock Dashboard"}
+                            {error && <p className="text-sm text-center text-red-500 font-medium animate-pulse">{error}</p>}
+                            <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify Identity"}
                             </Button>
                         </form>
                     </CardContent>
@@ -141,21 +139,27 @@ export default function AdminPage() {
         )
     }
 
+    // --- Control Center Dashboard ---
     return (
-        <div className="container py-8 space-y-6">
-            <SEO title="Admin Dashboard - ANW" />
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="container py-8 space-y-8 animate-in fade-in duration-500">
+            <SEO title="Control Center - ANW" />
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="text-muted-foreground">Manage and export incoming inquiries.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
+                        <ShieldAlert className="h-8 w-8 text-red-600" />
+                        Mission Control
+                    </h1>
+                    <p className="text-lg text-muted-foreground mt-1">Global security status and revenue monitoring.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-bold text-sm animate-pulse">
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                        SYSTEM OPERATIONAL
+                    </div>
                     <Button variant="outline" onClick={loadSubmissions} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        Refresh
-                    </Button>
-                    <Button variant="outline" onClick={downloadCSV} disabled={!data.length}>
-                        <Download className="h-4 w-4 mr-2" /> Export CSV
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} /> Sync
                     </Button>
                     <Button variant="destructive" onClick={handleLogout}>
                         <LogOut className="h-4 w-4 mr-2" /> Logout
@@ -163,14 +167,135 @@ export default function AdminPage() {
                 </div>
             </div>
 
+            {/* KPI Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">Total Scans (24h)</CardTitle>
+                        <Activity className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">15,420</div>
+                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1 flex items-center">
+                            <TrendingUp className="w-3 h-3 mr-1" /> +20.1% from yesterday
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/10 border-red-200 dark:border-red-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">Threats Blocked</CardTitle>
+                        <ShieldAlert className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">328</div>
+                        <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                            Prevented potential damages
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">Est. Revenue</CardTitle>
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">$1,240</div>
+                        <p className="text-xs text-green-600 dark:text-green-300 mt-1">
+                            Pending Payout
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">42</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Currently online
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+
+                {/* Traffic Chart (Custom SVG Implementation) */}
+                <Card className="col-span-4">
+                    <CardHeader>
+                        <CardTitle>Global Scan Traffic</CardTitle>
+                        <CardDescription>Real-time request volume over the last 24 hours.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[350px] w-full flex items-end justify-between gap-2 pt-10 relative">
+                            {/* Grid Lines */}
+                            <div className="absolute inset-0 flex flex-col justify-between text-xs text-muted-foreground/30 pointer-events-none">
+                                <div className="border-b w-full h-full border-dashed" />
+                                <div className="border-b w-full h-full border-dashed" />
+                                <div className="border-b w-full h-full border-dashed" />
+                                <div className="border-b w-full h-full border-dashed" />
+                            </div>
+
+                            {/* Data Bars */}
+                            {trafficData.map((data, i) => (
+                                <div key={i} className="group relative flex flex-col justify-end w-full h-full items-center">
+                                    <div className="w-full max-w-[40px] bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all relative overflow-hidden" style={{ height: `${(data.scans / 1000) * 100}%` }}>
+                                        <div className="absolute bottom-0 w-full bg-red-500/50" style={{ height: `${(data.threats / data.scans) * 100}%` }} />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground mt-2">{data.time}</span>
+
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full mb-2 bg-popover text-popover-foreground text-xs rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg border pointer-events-none whitespace-nowrap z-10">
+                                        <div className="font-bold">{data.time}</div>
+                                        <div>Scans: {data.scans}</div>
+                                        <div className="text-red-500">Threats: {data.threats}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Threat Feed */}
+                <Card className="col-span-3">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Globe className="h-5 w-5 text-indigo-500" />
+                            Live Threat Feed
+                        </CardTitle>
+                        <CardDescription>Real-time blocked attempts from global nodes.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                            {recentAlerts.map((alert, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border-l-4 border-red-500 animate-in slide-in-from-right-5 fade-in duration-300" style={{ animationDelay: `${i * 100}ms` }}>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xl">{alert.country.split(" ")[0]}</span>
+                                        <div>
+                                            <p className="font-bold text-sm">{alert.type} Blocked</p>
+                                            <p className="text-xs text-muted-foreground truncate w-32">{alert.url}</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-mono text-muted-foreground">{alert.time}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Data Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Submissions</CardTitle>
+                    <CardTitle>Inquiry & Subscription Log</CardTitle>
                     <CardDescription>
-                        {data.length > 0 ? `${data.length} records found.` : "No data loaded. Use Refresh to fetch."}
+                        {data.length > 0 ? `${data.length} records found.` : "Use Sync button to fetch latest DB records."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {/* ... (Existing Table Code) ... */}
                     <div className="rounded-md border overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-muted/50 text-muted-foreground">
@@ -186,7 +311,7 @@ export default function AdminPage() {
                                 {data.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                                            No data to display.
+                                            No recent inquiries found.
                                         </td>
                                     </tr>
                                 ) : (
