@@ -94,24 +94,86 @@ exports.handler = async (event) => {
   if (!SITE_ID) return json(500, { ok: false, error: "Missing NETLIFY_SITE_ID in env" });
 
   try {
-    // ✅ 4) 사이트의 폼 목록 조회 → FORM_NAME 찾기
-    const forms = await netlifyFetch(`/sites/${SITE_ID}/forms`, NETLIFY_ACCESS_TOKEN);
-    const form = (forms || []).find((f) => f?.name === FORM_NAME);
-
-    if (!form) {
-      return json(404, {
-        ok: false,
-        error: "FORM_NAME not found on this site",
-        hint: "Netlify > Forms 에 폼이 만들어졌는지 확인(도메인에서 1회 이상 제출 필요)",
-        available_forms: (forms || []).map((f) => f?.name).filter(Boolean),
-      });
+    // ✅ 4) 사이트의 폼 목록 조회 (Netlify Forms)
+    let submissions = [];
+    try {
+      const forms = await netlifyFetch(`/sites/${SITE_ID}/forms`, NETLIFY_ACCESS_TOKEN);
+      const form = (forms || []).find((f) => f?.name === FORM_NAME);
+      if (form) {
+        submissions = await netlifyFetch(`/forms/${form.id}/submissions`, NETLIFY_ACCESS_TOKEN);
+      }
+    } catch (e) {
+      console.warn("Netlify Forms fetch failed:", e.message);
     }
 
-    // ✅ 5) 제출 데이터(submissions) 가져오기
-    const submissions = await netlifyFetch(`/forms/${form.id}/submissions`, NETLIFY_ACCESS_TOKEN);
+    // ✅ 5) Supabase 데이터 가져오기 (Dashboard Stats)
+    const { createClient } = require('@supabase/supabase-js');
+    const sbUrl = process.env.VITE_SUPABASE_URL;
+    const sbKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-    return json(200, { ok: true, form: { id: form.id, name: form.name }, submissions });
+    let dbLogs = [];
+    let trafficData = [];
+    let recentAlerts = [];
+    let kpi = { totalScans: 0, threatsBlocked: 0, revenue: 1240, activeUsers: 42 };
+
+    if (sbUrl && sbKey) {
+      const supabase = createClient(sbUrl, sbKey);
+
+      // Fetch last 24 hours logs
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from('scan_logs')
+        .select('*')
+        .gte('created_at', yesterday)
+        .order('created_at', { ascending: true })
+        .limit(1000); // Limit for performance
+
+      if (data) {
+        dbLogs = data;
+        kpi.totalScans = dbLogs.length;
+        kpi.threatsBlocked = dbLogs.filter(l => l.result_level === 'BAD' || l.result_level === 'danger').length;
+
+        // Aggregate Hourly Traffic
+        const hours = {};
+        // Initialize last 24h
+        for (let i = 0; i < 24; i++) {
+          const date = new Date(Date.now() - (23 - i) * 60 * 60 * 1000);
+          const h = date.getHours();
+          const key = `${h}:00`;
+          hours[key] = { time: key, scans: 0, threats: 0 };
+        }
+
+        dbLogs.forEach(log => {
+          const h = new Date(log.created_at).getHours();
+          const key = `${h}:00`;
+          if (hours[key]) {
+            hours[key].scans++;
+            if (log.result_level === 'BAD' || log.result_level === 'danger') hours[key].threats++;
+          }
+        });
+        trafficData = Object.values(hours);
+
+        // Recent Alerts
+        recentAlerts = dbLogs
+          .filter(l => l.result_level === 'BAD' || l.result_level === 'danger')
+          .slice(-10)
+          .reverse()
+          .map(l => ({
+            country: l.country === 'KR' ? "🇰🇷 KR" : "🇺🇸 US",
+            type: l.result_category || "Scam",
+            url: l.url,
+            time: new Date(l.created_at).toLocaleTimeString()
+          }));
+      }
+    }
+
+    return json(200, {
+      ok: true,
+      submissions,
+      stats: { trafficData, recentAlerts, kpi }
+    });
+
   } catch (e) {
-    return json(500, { ok: false, error: "Netlify API error", detail: String(e?.message || e) });
+    return json(500, { ok: false, error: "API Error", detail: String(e?.message || e) });
   }
 };

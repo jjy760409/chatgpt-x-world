@@ -46,6 +46,13 @@ export default function AdminPage() {
     const [data, setData] = useState<Submission[]>([])
     const [error, setError] = useState("")
 
+    // Real-time Stats State
+    const [stats, setStats] = useState({
+        trafficData: trafficData, // Initial with mock, replace with real
+        recentAlerts: recentAlerts,
+        kpi: { totalScans: 15420, threatsBlocked: 328, revenue: 1240, activeUsers: 42 }
+    })
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
@@ -87,8 +94,16 @@ export default function AdminPage() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             const json = await res.json()
-            if (json.ok && Array.isArray(json.submissions)) {
-                setData(json.submissions)
+            if (json.ok) {
+                if (Array.isArray(json.submissions)) setData(json.submissions)
+                if (json.stats) {
+                    // Update stats if present (Phase 2)
+                    setStats(prev => ({
+                        trafficData: json.stats.trafficData.length > 0 ? json.stats.trafficData : prev.trafficData,
+                        recentAlerts: json.stats.recentAlerts.length > 0 ? json.stats.recentAlerts : prev.recentAlerts,
+                        kpi: { ...prev.kpi, ...json.stats.kpi }
+                    }))
+                }
             } else {
                 if (json.error?.toLowerCase().includes("token")) handleLogout()
             }
@@ -175,9 +190,9 @@ export default function AdminPage() {
                         <Activity className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">15,420</div>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.kpi.totalScans.toLocaleString()}</div>
                         <p className="text-xs text-blue-600 dark:text-blue-300 mt-1 flex items-center">
-                            <TrendingUp className="w-3 h-3 mr-1" /> +20.1% from yesterday
+                            <TrendingUp className="w-3 h-3 mr-1" /> Real-time
                         </p>
                     </CardContent>
                 </Card>
@@ -187,7 +202,7 @@ export default function AdminPage() {
                         <ShieldAlert className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">328</div>
+                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">{stats.kpi.threatsBlocked.toLocaleString()}</div>
                         <p className="text-xs text-red-600 dark:text-red-300 mt-1">
                             Prevented potential damages
                         </p>
@@ -199,7 +214,7 @@ export default function AdminPage() {
                         <DollarSign className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">$1,240</div>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">${stats.kpi.revenue.toLocaleString()}</div>
                         <p className="text-xs text-green-600 dark:text-green-300 mt-1">
                             Pending Payout
                         </p>
@@ -211,7 +226,7 @@ export default function AdminPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">42</div>
+                        <div className="text-3xl font-bold">{stats.kpi.activeUsers}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Currently online
                         </p>
@@ -239,10 +254,10 @@ export default function AdminPage() {
                             </div>
 
                             {/* Data Bars */}
-                            {trafficData.map((data, i) => (
+                            {stats.trafficData.map((data, i) => (
                                 <div key={i} className="group relative flex flex-col justify-end w-full h-full items-center">
-                                    <div className="w-full max-w-[40px] bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all relative overflow-hidden" style={{ height: `${(data.scans / 1000) * 100}%` }}>
-                                        <div className="absolute bottom-0 w-full bg-red-500/50" style={{ height: `${(data.threats / data.scans) * 100}%` }} />
+                                    <div className="w-full max-w-[40px] bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all relative overflow-hidden" style={{ height: `${(data.scans / Math.max(10, Math.max(...stats.trafficData.map(d => d.scans)))) * 100}%` }}>
+                                        <div className="absolute bottom-0 w-full bg-red-500/50" style={{ height: `${(data.threats / Math.max(1, data.scans)) * 100}%` }} />
                                     </div>
                                     <span className="text-xs text-muted-foreground mt-2">{data.time}</span>
 
@@ -269,7 +284,7 @@ export default function AdminPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                            {recentAlerts.map((alert, i) => (
+                            {stats.recentAlerts.map((alert, i) => (
                                 <div key={i} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border-l-4 border-red-500 animate-in slide-in-from-right-5 fade-in duration-300" style={{ animationDelay: `${i * 100}ms` }}>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xl">{alert.country.split(" ")[0]}</span>

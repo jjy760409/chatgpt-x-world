@@ -26,6 +26,17 @@ exports.handler = async (event) => {
 
   // --- Subscription Verification ---
   const { verifyToken } = require("./subscription-token");
+
+  // --- Supabase Init ---
+  const { createClient } = require('@supabase/supabase-js');
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+  let supabase = null;
+  if (supabaseUrl && supabaseKey) {
+    try { supabase = createClient(supabaseUrl, supabaseKey); } catch (e) { console.error("Supabase Init Error", e); }
+  }
+  // ---------------------
+
   const secret = process.env.SUBSCRIPTION_SECRET || "anw-secret-key-123";
   let isPro = false;
 
@@ -134,83 +145,112 @@ exports.handler = async (event) => {
         oneLine: parsed.oneLine || "분석 결과를 확인하세요.",
         reason: parsed.reason || "",
       });
-    }
+
+      // --- LOGGING ---
+      if (supabase) {
+        supabase.from('scan_logs').insert([{
+          ip: event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown",
+          url: text.substring(0, 200),
+          result_level: parsed.level || "WARN",
+          result_category: parsed.category || "General",
+          country: event.headers["x-country"] || "KR",
+          created_at: new Date().toISOString()
+        }]).then(({ error }) => { if (error) console.error("Log Error:", error); });
+      }
+      // ---------------
+
+      return json(200, {
+      }
 
     // JSON 파싱 실패 → 폴백
     const result = localAnalyze(text.trim());
-    return json(200, { ok: true, source: "local-fallback", ...result });
 
-  } catch (e) {
-    console.error("analyze error:", e);
-    const result = localAnalyze(text.trim());
-    return json(200, { ok: true, source: "local-fallback", ...result });
-  }
-};
+      // --- LOGGING ---
+      if (supabase) {
+        supabase.from('scan_logs').insert([{
+          ip: event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown",
+          url: text.substring(0, 200),
+          result_level: result.level,
+          result_category: "local-fallback",
+          country: event.headers["x-country"] || "KR",
+          created_at: new Date().toISOString()
+        }]).then(({ error }) => { if (error) console.error("Log Error:", error); });
+      }
+      // ---------------
 
-// ✅ 로컬 규칙 기반 분석 (AI 없이도 기본 검사 가능)
-function localAnalyze(text) {
-  const lower = text.toLowerCase();
+      return json(200, { ok: true, source: "local-fallback", ...result });
 
-  // 위험 키워드
-  const dangerKeywords = [
-    "계좌이체", "송금", "인증번호", "otp", "긴급", "당장",
-    "검찰", "경찰", "국세청", "은행", "대출", "당첨",
-    "apk", ".exe", "설치하세요", "다운로드",
-    "blocked", "suspended", "verify your account", "confirm your identity",
-    "urgent action required", "your account will be closed",
-  ];
-
-  // 주의 키워드
-  const warnKeywords = [
-    "bit.ly", "tinyurl", "t.co", "goo.gl", "shorturl",
-    "클릭", "확인하세요", "바로가기", "무료", "혜택",
-    "click here", "free offer", "limited time",
-  ];
-
-  // 안전한 도메인
-  const safeDomains = [
-    "google.com", "naver.com", "daum.net", "kakao.com",
-    "youtube.com", "github.com", "microsoft.com", "apple.com",
-    "amazon.com", "facebook.com", "instagram.com",
-  ];
-
-  // 안전한 도메인 체크
-  for (const domain of safeDomains) {
-    if (lower.includes(domain)) {
-      return {
-        level: "OK",
-        oneLine: "잘 알려진 안전한 사이트입니다.",
-        reason: `${domain}은(는) 공식 사이트로 확인되었습니다.`,
-      };
+    } catch (e) {
+      console.error("analyze error:", e);
+      const result = localAnalyze(text.trim());
+      return json(200, { ok: true, source: "local-fallback", ...result });
     }
-  }
-
-  // 위험 체크
-  for (const kw of dangerKeywords) {
-    if (lower.includes(kw)) {
-      return {
-        level: "BAD",
-        oneLine: "⚠️ 사기/피싱 가능성이 높습니다!",
-        reason: `"${kw}" 관련 위험 패턴이 감지되었습니다. 절대 개인 정보를 입력하지 마세요.`,
-      };
-    }
-  }
-
-  // 주의 체크
-  for (const kw of warnKeywords) {
-    if (lower.includes(kw)) {
-      return {
-        level: "WARN",
-        oneLine: "주의가 필요합니다.",
-        reason: `"${kw}" 관련 패턴이 발견되었습니다. 출처를 한 번 더 확인하세요.`,
-      };
-    }
-  }
-
-  // 기본: 안전
-  return {
-    level: "OK",
-    oneLine: "현재까지 위험 요소가 감지되지 않았습니다.",
-    reason: "알려진 위험 패턴과 일치하지 않습니다. 그래도 주의해서 사용하세요.",
   };
-}
+
+  // ✅ 로컬 규칙 기반 분석 (AI 없이도 기본 검사 가능)
+  function localAnalyze(text) {
+    const lower = text.toLowerCase();
+
+    // 위험 키워드
+    const dangerKeywords = [
+      "계좌이체", "송금", "인증번호", "otp", "긴급", "당장",
+      "검찰", "경찰", "국세청", "은행", "대출", "당첨",
+      "apk", ".exe", "설치하세요", "다운로드",
+      "blocked", "suspended", "verify your account", "confirm your identity",
+      "urgent action required", "your account will be closed",
+    ];
+
+    // 주의 키워드
+    const warnKeywords = [
+      "bit.ly", "tinyurl", "t.co", "goo.gl", "shorturl",
+      "클릭", "확인하세요", "바로가기", "무료", "혜택",
+      "click here", "free offer", "limited time",
+    ];
+
+    // 안전한 도메인
+    const safeDomains = [
+      "google.com", "naver.com", "daum.net", "kakao.com",
+      "youtube.com", "github.com", "microsoft.com", "apple.com",
+      "amazon.com", "facebook.com", "instagram.com",
+    ];
+
+    // 안전한 도메인 체크
+    for (const domain of safeDomains) {
+      if (lower.includes(domain)) {
+        return {
+          level: "OK",
+          oneLine: "잘 알려진 안전한 사이트입니다.",
+          reason: `${domain}은(는) 공식 사이트로 확인되었습니다.`,
+        };
+      }
+    }
+
+    // 위험 체크
+    for (const kw of dangerKeywords) {
+      if (lower.includes(kw)) {
+        return {
+          level: "BAD",
+          oneLine: "⚠️ 사기/피싱 가능성이 높습니다!",
+          reason: `"${kw}" 관련 위험 패턴이 감지되었습니다. 절대 개인 정보를 입력하지 마세요.`,
+        };
+      }
+    }
+
+    // 주의 체크
+    for (const kw of warnKeywords) {
+      if (lower.includes(kw)) {
+        return {
+          level: "WARN",
+          oneLine: "주의가 필요합니다.",
+          reason: `"${kw}" 관련 패턴이 발견되었습니다. 출처를 한 번 더 확인하세요.`,
+        };
+      }
+    }
+
+    // 기본: 안전
+    return {
+      level: "OK",
+      oneLine: "현재까지 위험 요소가 감지되지 않았습니다.",
+      reason: "알려진 위험 패턴과 일치하지 않습니다. 그래도 주의해서 사용하세요.",
+    };
+  }
