@@ -83,6 +83,9 @@ exports.handler = async (event) => {
   // ✅ API 키가 없으면 규칙 기반 로컬 분석으로 폴백
   if (!API_KEY) {
     const result = localAnalyze(text.trim());
+    // --- TELEGRAM ALERT ---
+    await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    // ----------------------
     return json(200, { ok: true, source: "local", ...result });
   }
 
@@ -128,6 +131,9 @@ exports.handler = async (event) => {
       console.error("Gemini API error:", errData);
       // 폴백: 로컬 분석
       const result = localAnalyze(text.trim());
+      // --- TELEGRAM ALERT ---
+      await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+      // ----------------------
       return json(200, { ok: true, source: "local-fallback", ...result });
     }
 
@@ -190,6 +196,9 @@ exports.handler = async (event) => {
   } catch (e) {
     console.error("analyze error:", e);
     const result = localAnalyze(text.trim());
+    // --- TELEGRAM ALERT ---
+    await sendTelegramAlert(text, { ...result, category: "local-fallback" }, event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown", event.headers["x-country"] || "KR");
+    // ----------------------
     return json(200, { ok: true, source: "local-fallback", ...result });
   }
 };
