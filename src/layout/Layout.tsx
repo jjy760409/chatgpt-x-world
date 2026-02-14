@@ -1,26 +1,39 @@
 import { Link, Outlet } from "react-router-dom"
-import { ShieldAlert } from "lucide-react"
+import { ShieldAlert, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useTranslation } from "react-i18next"
 
 export default function Layout() {
+    const { i18n } = useTranslation();
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language.startsWith('ko') ? 'en' : 'ko';
+        i18n.changeLanguage(newLang);
+    };
+
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
             <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-14 max-w-screen-2xl items-center">
-                    <div className="mr-4 hidden md:flex">
-                        <Link to="/" className="mr-6 flex items-center space-x-2">
-                            <ShieldAlert className="h-6 w-6 text-primary" />
-                            <span className="hidden font-bold sm:inline-block">
-                                ANW (Anti-Scam Web)
-                            </span>
+                <div className="container flex h-16 items-center justify-between">
+                    <Link to="/" className="flex items-center gap-2 font-bold text-xl">
+                        <ShieldAlert className="h-6 w-6 text-primary" />
+                        <span className="hidden md:inline-block">ANW</span>
+                    </Link>
+
+                    <nav className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleLanguage}
+                            className="gap-2"
+                        >
+                            <Globe className="h-4 w-4" />
+                            {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
+                        </Button>
+                        <Link to="/pricing">
+                            <Button variant="ghost" size="sm">Pro Plan</Button>
                         </Link>
-                    </div>
-                    <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-                        <nav className="flex items-center space-x-6 text-sm font-medium">
-                            <Link to="/pricing" className="transition-colors hover:text-foreground/80 text-foreground/60">Pricing</Link>
-                            <Link to="/about" className="transition-colors hover:text-foreground/80 text-foreground/60">How it works</Link>
-                            <Link to="/admin" className="transition-colors hover:text-foreground/80 text-foreground/60">Admin</Link>
-                        </nav>
-                    </div>
+                    </nav>
                 </div>
             </header>
             <main className="flex-1">

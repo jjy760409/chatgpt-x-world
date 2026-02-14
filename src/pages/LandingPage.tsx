@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle, Crown } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle } from "lucide-react"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,13 +10,15 @@ import { useSubscription } from "@/hooks/useSubscription"
 import { LimitReachedModal } from "@/components/LimitReachedModal"
 import { ReportAction } from "@/components/ReportAction"
 import { getDeviceId } from "@/lib/fingerprint"
+import { useTranslation } from "react-i18next"
 
 export default function LandingPage() {
+    const { t } = useTranslation();
     const [url, setUrl] = useState("")
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string; category?: string }>(null)
     const [showLimitModal, setShowLimitModal] = useState(false)
-    const { subscription, isPro } = useSubscription()
+    const { subscription } = useSubscription()
     const [deviceId, setDeviceId] = useState("")
 
     useEffect(() => {
@@ -109,21 +111,21 @@ export default function LandingPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
+                            className="text-center space-y-6"
                         >
-                            <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 mb-4 gap-2">
-                                <span>v2.0 Beta Now Live</span>
-                                {isPro && (
-                                    <span className="flex items-center gap-1 bg-yellow-400 text-black px-1.5 py-0.5 rounded-full text-[10px]">
-                                        <Crown className="w-3 h-3" /> Pro User
-                                    </span>
-                                )}
+                            <div className="flex justify-center">
+                                <div className="relative">
+                                    <Shield className="w-20 h-20 text-primary animate-pulse" />
+                                    <Lock className="w-8 h-8 text-primary absolute -bottom-2 -right-2 bg-background rounded-full p-1" />
+                                </div>
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-                                Detect Scams <br className="hidden sm:inline" />
-                                <span className="text-blue-500">Before They Strike</span>
+
+                            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400">
+                                {t('common.title')}
                             </h1>
-                            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl mt-4">
-                                Real-time protection against phishing, smishing, and fraud using advanced AI analysis.
+
+                            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                                {t('common.description')}
                             </p>
                         </motion.div>
 
@@ -134,21 +136,27 @@ export default function LandingPage() {
                             transition={{ delay: 0.2, duration: 0.5 }}
                             className="w-full max-w-lg mt-8"
                         >
-                            <form onSubmit={handleCheck} className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
-                                <div className="relative flex items-center bg-background rounded-lg border p-1 shadow-2xl">
-                                    <Search className="ml-3 h-5 w-5 text-muted-foreground" />
-                                    <Input
-                                        className="border-0 shadow-none focus-visible:ring-0 text-md"
-                                        placeholder="Enter URL, Phone, or Account Number..."
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                    />
-                                    <Button type="submit" disabled={isChecking}>
-                                        {isChecking ? "Scanning..." : "Check Now"}
+                            <CardContent className="p-6 space-y-4">
+                                <form onSubmit={handleCheck} className="flex gap-2">
+                                    <div className="grid w-full items-center gap-1.5">
+                                        <Label htmlFor="url" className="sr-only">URL or Content</Label>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="url"
+                                                placeholder={t('common.placeholder')}
+                                                className="pl-9 h-12 text-lg"
+                                                value={url}
+                                                onChange={(e) => setUrl(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <Button type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking}>
+                                        {isChecking ? t('common.analyzing') : t('common.start_scan')}
                                     </Button>
-                                </div>
-                            </form>
+                                </form>
+                            </CardContent>
 
                             {result && (
                                 <motion.div
