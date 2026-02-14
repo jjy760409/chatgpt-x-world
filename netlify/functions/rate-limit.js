@@ -9,14 +9,15 @@ setInterval(() => {
 }, 24 * 60 * 60 * 1000);
 
 /**
- * Checks if the IP has exceeded the limit
- * @param {string} ip - User IP address
+ * Checks if the identifier (IP or DeviceID) has exceeded the limit
+ * @param {string} identifier - User IP or Device ID
  * @param {number} limit - Max allowed requests
+ * @param {string} type - "ip" or "device"
  * @returns {boolean} - True if allowed, False if limit exceeded
  */
-function checkRateLimit(ip, limit = 10) {
+function checkRateLimit(identifier, limit = 10, type = "ip") {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const key = `${ip}:${today}`;
+    const key = `rate_limit:${type}:${identifier}:${today}`;
 
     const currentUsage = usageStore.get(key) || 0;
 

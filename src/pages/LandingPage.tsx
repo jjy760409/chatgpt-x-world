@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Shield, Search, Lock, AlertTriangle, CheckCircle, Crown } from "lucide-react"
 import SEO from "@/components/SEO"
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useSubscription } from "@/hooks/useSubscription"
 import { LimitReachedModal } from "@/components/LimitReachedModal"
 import { ReportAction } from "@/components/ReportAction"
+import { getDeviceId } from "@/lib/fingerprint"
 
 export default function LandingPage() {
     const [url, setUrl] = useState("")
@@ -16,6 +17,11 @@ export default function LandingPage() {
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string; category?: string }>(null)
     const [showLimitModal, setShowLimitModal] = useState(false)
     const { subscription, isPro } = useSubscription()
+    const [deviceId, setDeviceId] = useState("")
+
+    useEffect(() => {
+        getDeviceId().then(setDeviceId)
+    }, [])
 
     const handleCheck = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -26,6 +32,9 @@ export default function LandingPage() {
         const headers: HeadersInit = { "Content-Type": "application/json" }
         if (subscription?.token) {
             headers["Authorization"] = `Bearer ${subscription.token}`
+        }
+        if (deviceId) {
+            headers["x-device-id"] = deviceId
         }
 
         try {

@@ -41,16 +41,20 @@ exports.handler = async (event) => {
     }
   }
 
-  // --- Rate Limiting for Free Users ---
+  // --- Rate Limiting for Free Users (IP + Device Fingerprint) ---
   if (!isPro) {
     const { checkRateLimit } = require("./rate-limit");
-    const clientIp = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown-ip"; // Netlify specific header
+    const clientIp = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "unknown-ip";
+    const deviceId = event.headers["x-device-id"] || "unknown-device";
 
-    // Allow 10 scans per day for free users
-    const limitResult = checkRateLimit(clientIp, 10);
+    // 1. Check IP Limit
+    const ipLimit = checkRateLimit(clientIp, 10, "ip");
 
-    if (!limitResult.allowed) {
-      console.log(`[Analyze] Rate limit exceeded for IP: ${clientIp}`);
+    // 2. Check Device Limit (Stronger check for abuse prevention)
+    const deviceLimit = checkRateLimit(deviceId, 10, "device");
+
+    if (!ipLimit.allowed || !deviceLimit.allowed) {
+      console.log(`[Analyze] Rate limit exceeded. IP: ${clientIp}, Device: ${deviceId}`);
       return json(429, {
         ok: false,
         error: "Daily free limit reached",
