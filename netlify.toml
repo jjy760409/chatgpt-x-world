@@ -8,6 +8,18 @@
   SECRETS_SCAN_OMIT_KEYS = "ADMIN_KEY"
   SECRETS_SCAN_ENABLED = "true"
 
+[[redirects]]
+  from = "https://chatgpt-x.world/*"
+  to = "https://anw.kr/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.chatgpt-x.world/*"
+  to = "https://anw.kr/:splat"
+  status = 301
+  force = true
+
 # SPA fallback (React Router)
 [[redirects]]
   from = "/api/*"

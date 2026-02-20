@@ -1,0 +1,32 @@
+{
+    "redirects": [
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "chatgpt-x.world"
+                }
+            ],
+            "destination": "https://anw.kr/$1",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.chatgpt-x.world"
+                }
+            ],
+            "destination": "https://anw.kr/$1",
+            "permanent": true
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
