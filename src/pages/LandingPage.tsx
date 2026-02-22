@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X, Globe } from "lucide-react"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,11 @@ import { getDeviceId } from "@/lib/fingerprint"
 import { useTranslation } from "react-i18next"
 import { ShareButtons } from "@/components/ShareButtons"
 
+interface TickerItem {
+    text: string;
+    time: string;
+}
+
 export default function LandingPage() {
     const { t } = useTranslation();
     const [url, setUrl] = useState("")
@@ -23,9 +28,20 @@ export default function LandingPage() {
     const { subscription } = useSubscription()
     const [deviceId, setDeviceId] = useState("")
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [tickerData, setTickerData] = useState<TickerItem[]>([])
 
     useEffect(() => {
         getDeviceId().then(setDeviceId)
+
+        // Fetch Live Threats
+        fetch('/api/public-threats')
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok && data.threats) {
+                    setTickerData(data.threats);
+                }
+            })
+            .catch(err => console.error("Failed to load ticker data"));
     }, [])
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +155,7 @@ export default function LandingPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
-                            className="text-center space-y-6"
+                            className="text-center space-y-6 w-full"
                         >
                             <div className="flex justify-center">
                                 <div className="relative">
@@ -155,6 +171,28 @@ export default function LandingPage() {
                             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                                 {t('common.description')}
                             </p>
+
+                            {/* Live Threat Ticker */}
+                            {tickerData.length > 0 && (
+                                <div className="w-full max-w-3xl mx-auto overflow-hidden bg-background/50 backdrop-blur-sm border rounded-full py-2 px-4 shadow-sm mt-8 relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2 bg-background/90 pr-2">
+                                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                        <span className="text-xs font-bold text-muted-foreground">LIVE</span>
+                                    </div>
+                                    <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent z-[5]" />
+                                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-[5]" />
+
+                                    <div className="flex whitespace-nowrap animate-marquee items-center pl-16">
+                                        {[...tickerData, ...tickerData].map((item, i) => (
+                                            <span key={i} className="flex items-center mx-4 text-sm">
+                                                <span className="font-semibold">{item.text}</span>
+                                                <span className="text-xs text-muted-foreground ml-2">({item.time})</span>
+                                                <span className="mx-4 text-muted-foreground/30">•</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
 
                         {/* Checker Mockup */}

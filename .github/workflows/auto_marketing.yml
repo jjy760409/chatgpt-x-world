@@ -1,0 +1,40 @@
+name: Auto Marketing Engine
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC (9:00 AM KST)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  generate-seo-post:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install Dependencies
+      run: npm install @supabase/supabase-js
+        
+    - name: Run Auto Marketer Bot
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: node scripts/auto_marketer.js
+        
+    - name: Commit and Push SEO Content
+      run: |
+        git config --global user.name "ANW Auto Marketer"
+        git config --global user.email "auto-marketer@anw.kr"
+        git add marketing_auto/
+        git commit -m "docs(marketing): auto-generated daily SEO post" || echo "No changes to commit"
+        git push origin main
