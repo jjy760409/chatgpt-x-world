@@ -10,7 +10,7 @@ export default function Layout() {
     const { isInstallable, installApp } = usePWA();
 
     const toggleLanguage = () => {
-        const newLang = i18n.language.startsWith('ko') ? 'en' : 'ko';
+        const newLang = i18n.language?.startsWith('ko') ? 'en' : 'ko';
         i18n.changeLanguage(newLang);
     };
 
@@ -31,7 +31,7 @@ export default function Layout() {
                             className="gap-2"
                         >
                             <Globe className="h-4 w-4" />
-                            {i18n.language.startsWith('ko') ? 'EN' : 'KO'}
+                            {i18n.language?.startsWith('ko') ? 'EN' : 'KO'}
                         </Button>
 
                         {isInstallable && (
