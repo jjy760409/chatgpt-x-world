@@ -19,9 +19,16 @@ exports.handler = async (event) => {
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch { }
 
-  const { text } = body;
-  if (!text || typeof text !== "string" || text.trim().length === 0) {
-    return json(400, { ok: false, error: "text field is required" });
+  let { text, image_base64 } = body;
+  const hasText = text && typeof text === "string" && text.trim().length > 0;
+  if (!hasText && !image_base64) {
+    return json(400, { ok: false, error: "text or image is required" });
+  }
+
+  if (!hasText) {
+    text = "(이미지 첨부됨: 텍스트 및 문맥을 파악하세요)";
+  } else {
+    text = text.trim();
   }
 
   // --- Subscription Verification ---
@@ -103,15 +110,25 @@ exports.handler = async (event) => {
   "reason": "왜 그런지 쉬운 말로 1~2문장"
 }
 
-규칙:
+- 이미지 스크린샷 텍스트, 송금증 위조, 사기 문자 캡처 등 악의적 요소도 완벽하게 시각적으로 분석해.
 - 링크 클릭 유도, 앱 설치(APK) 유도, 인증번호/OTP/계좌/송금 유도, 긴급 공포 조장, 기관 사칭이면 위험도를 올려라.
 - 잘 알려진 공식 사이트(google.com, naver.com 등)는 안전.
 - 단축 URL(bit.ly, tinyurl.com 등)은 주의.
 - 애매하면 WARN.
 - 무조건 짧고 쉬운 한국어 문장.
 
-분석 대상:
-"""${text.trim()}"""`;
+분석 대상 텍스트:
+"""${text}"""`;
+
+    let parts = [{ text: prompt }];
+    if (image_base64) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg", // fallback for all standard images
+          data: image_base64
+        }
+      });
+    }
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
@@ -119,7 +136,7 @@ exports.handler = async (event) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 256,

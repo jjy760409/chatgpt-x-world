@@ -20,24 +20,22 @@ interface Submission {
     }
 }
 
-// Mock Data for Phase 1 Visualization
-const trafficData = [
-    { time: '00:00', scans: 120, threats: 5 },
-    { time: '04:00', scans: 80, threats: 2 },
-    { time: '08:00', scans: 450, threats: 25 },
-    { time: '12:00', scans: 980, threats: 45 },
-    { time: '16:00', scans: 850, threats: 38 },
-    { time: '20:00', scans: 600, threats: 20 },
-    { time: '24:00', scans: 300, threats: 10 },
-];
+interface TrafficData {
+    time: string;
+    scans: number;
+    threats: number;
+}
 
-const recentAlerts = [
-    { country: "🇺🇸 US", type: "Phishing", url: "secure-login-bank.com", time: "2 min ago" },
-    { country: "🇰🇷 KR", type: "Smishing", url: "cj-logistics-tracking.xyz", time: "5 min ago" },
-    { country: "🇯🇵 JP", type: "Scam", url: "amazon-prime-gift.net", time: "12 min ago" },
-    { country: "🇰🇷 KR", type: "Gambling", url: "bet365-korea-win.com", time: "15 min ago" },
-    { country: "🇩🇪 DE", type: "Phishing", url: "deutsche-post-help.com", time: "22 min ago" },
-];
+interface AlertData {
+    country: string;
+    type: string;
+    url: string;
+    time: string;
+}
+
+// Real data will be fetched from Supabase
+const trafficData: TrafficData[] = [];
+const recentAlerts: AlertData[] = [];
 
 export default function AdminPage() {
     const [key, setKey] = useState("")
@@ -48,9 +46,9 @@ export default function AdminPage() {
 
     // Real-time Stats State
     const [stats, setStats] = useState({
-        trafficData: trafficData, // Initial with mock, replace with real
+        trafficData: trafficData,
         recentAlerts: recentAlerts,
-        kpi: { totalScans: 15420, threatsBlocked: 328, revenue: 1240, activeUsers: 42 }
+        kpi: { totalScans: 0, threatsBlocked: 0, revenue: 0, activeUsers: 0 }
     })
 
     const handleLogin = async (e: React.FormEvent) => {

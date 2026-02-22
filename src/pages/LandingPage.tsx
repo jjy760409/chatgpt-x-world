@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X } from "lucide-react"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,19 +16,41 @@ import { ShareButtons } from "@/components/ShareButtons"
 export default function LandingPage() {
     const { t } = useTranslation();
     const [url, setUrl] = useState("")
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string; category?: string }>(null)
     const [showLimitModal, setShowLimitModal] = useState(false)
     const { subscription } = useSubscription()
     const [deviceId, setDeviceId] = useState("")
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         getDeviceId().then(setDeviceId)
     }, [])
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+            if (file.size > 5 * 1024 * 1024) {
+                alert("File size must be less than 5MB");
+                return;
+            }
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const clearImage = () => {
+        setImagePreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+
     const handleCheck = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url.trim()) return
+        if (!url.trim() && !imagePreview) return
         setIsChecking(true)
         setResult(null)
 
@@ -41,10 +63,15 @@ export default function LandingPage() {
         }
 
         try {
+            const payload = {
+                text: url.trim(),
+                image_base64: imagePreview ? (imagePreview as string).split(',')[1] : undefined
+            }
+
             const res = await fetch("/api/analyze", {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ text: url.trim() }),
+                body: JSON.stringify(payload),
             })
             const data = await res.json()
 
@@ -141,22 +168,45 @@ export default function LandingPage() {
                                 <form onSubmit={handleCheck} className="flex gap-2">
                                     <div className="grid w-full items-center gap-1.5">
                                         <Label htmlFor="url" className="sr-only">URL or Content</Label>
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <div className="relative flex items-center">
+                                            <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
                                             <Input
                                                 id="url"
-                                                placeholder={t('common.placeholder')}
-                                                className="pl-9 h-12 text-lg"
+                                                placeholder={t('common.placeholder') + " or Upload Image"}
+                                                className="pl-9 pr-12 h-12 text-lg"
                                                 value={url}
                                                 onChange={(e) => setUrl(e.target.value)}
-                                                required
                                             />
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={handleImageChange}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="absolute right-3 p-1 hover:bg-muted rounded-full transition-colors"
+                                                title="Upload Screenshot"
+                                            >
+                                                <ImagePlus className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <Button type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking}>
+                                    <Button type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking || (!url.trim() && !imagePreview)}>
                                         {isChecking ? t('common.analyzing') : t('common.start_scan')}
                                     </Button>
                                 </form>
+
+                                {imagePreview && (
+                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="relative w-full mx-auto mt-4 rounded-xl overflow-hidden border-2 border-primary/20 bg-muted/10 p-2 flex justify-center">
+                                        <img src={imagePreview} alt="Screenshot preview" className="w-auto h-auto max-h-48 object-contain rounded-md" />
+                                        <button onClick={clearImage} type="button" className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 p-1.5 rounded-full shadow-md text-white transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </motion.div>
+                                )}
                             </CardContent>
 
                             {result && (
