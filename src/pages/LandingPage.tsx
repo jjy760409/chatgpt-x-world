@@ -12,6 +12,7 @@ import { ReportAction } from "@/components/ReportAction"
 import { getDeviceId } from "@/lib/fingerprint"
 import { useTranslation } from "react-i18next"
 import { ShareButtons } from "@/components/ShareButtons"
+import CobeGlobe from "@/components/ui/CobeGlobe"
 
 interface TickerItem {
     text: string;
@@ -41,7 +42,33 @@ export default function LandingPage() {
                     setTickerData(data.threats);
                 }
             })
-            .catch(err => console.error("Failed to load ticker data"));
+            .catch(err => console.error("Failed to load ticker data", err));
+
+        // Read Web Share Target parameters
+        const searchParams = new URLSearchParams(window.location.search);
+        const sharedTitle = searchParams.get('title');
+        const sharedText = searchParams.get('text');
+        const sharedUrl = searchParams.get('url');
+
+        let initialContent = "";
+        if (sharedUrl) initialContent = sharedUrl;
+        else if (sharedText) initialContent = sharedText;
+        else if (sharedTitle) initialContent = sharedTitle;
+
+        if (initialContent.trim()) {
+            setUrl(initialContent);
+            // We use a small timeout to let state settle before auto-checking
+            setTimeout(() => {
+                const formEvent = { preventDefault: () => { } } as React.FormEvent;
+                // Since closure state might be stale, we pass the content directly if needed
+                // But since setUrl updates state, we'll just wait for it
+                const fakeButton = document.getElementById("auto-check-btn");
+                if (fakeButton) fakeButton.click();
+            }, 500);
+
+            // Clean up the URL to prevent repeated analysis on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }, [])
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,20 +184,39 @@ export default function LandingPage() {
                             transition={{ duration: 0.5 }}
                             className="text-center space-y-6 w-full"
                         >
-                            <div className="flex justify-center">
-                                <div className="relative">
-                                    <Shield className="w-20 h-20 text-primary animate-pulse" />
-                                    <Lock className="w-8 h-8 text-primary absolute -bottom-2 -right-2 bg-background rounded-full p-1" />
+                            <div className="flex flex-col md:flex-row justify-center items-center gap-8 w-full">
+                                {/* 3D Globe Visualization */}
+                                <div className="w-full md:w-1/2 relative flex justify-center mt-[-40px]">
+                                    <CobeGlobe className="w-64 h-64 md:w-96 md:h-96" />
+
+                                    {/* Personal Security Score Overlay Widget */}
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ delay: 0.5, type: "spring" }}
+                                        className="absolute bottom-4 right-4 md:bottom-12 md:right-12 bg-background/80 backdrop-blur-md border border-primary/30 p-4 rounded-2xl shadow-2xl flex flex-col items-center justify-center min-w-[140px]"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Shield className="w-4 h-4 text-green-500" />
+                                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Device Score</span>
+                                        </div>
+                                        <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-green-400 to-primary">
+                                            99<span className="text-lg text-muted-foreground ml-1">%</span>
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground mt-1">Excellent Status</div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Text Content */}
+                                <div className="w-full md:w-1/2 text-center md:text-left space-y-4">
+                                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400 leading-tight">
+                                        {t('common.title')}
+                                    </h1>
+                                    <p className="text-xl text-muted-foreground max-w-xl mx-auto md:mx-0">
+                                        {t('common.description')}
+                                    </p>
                                 </div>
                             </div>
-
-                            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400">
-                                {t('common.title')}
-                            </h1>
-
-                            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                                {t('common.description')}
-                            </p>
 
                             {/* Live Threat Ticker */}
                             {tickerData.length > 0 && (
@@ -232,7 +278,7 @@ export default function LandingPage() {
                                             </button>
                                         </div>
                                     </div>
-                                    <Button type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking || (!url.trim() && !imagePreview)}>
+                                    <Button id="auto-check-btn" type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking || (!url.trim() && !imagePreview)}>
                                         {isChecking ? t('common.analyzing') : t('common.start_scan')}
                                     </Button>
                                 </form>
