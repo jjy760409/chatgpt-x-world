@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X, Globe } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X } from "lucide-react"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,7 +59,6 @@ export default function LandingPage() {
             setUrl(initialContent);
             // We use a small timeout to let state settle before auto-checking
             setTimeout(() => {
-                const formEvent = { preventDefault: () => { } } as React.FormEvent;
                 // Since closure state might be stale, we pass the content directly if needed
                 // But since setUrl updates state, we'll just wait for it
                 const fakeButton = document.getElementById("auto-check-btn");

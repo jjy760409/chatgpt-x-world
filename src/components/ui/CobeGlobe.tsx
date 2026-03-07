@@ -1,3 +1,4 @@
+// @ts-ignore
 import createGlobe from "cobe";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ export default function CobeGlobe({ className }: { className?: string }) {
         { location: [1.3521, 103.8198], size: 0.05 },
         { location: [48.8566, 2.3522], size: 0.03 },
       ],
-      onRender: (state) => {
+      onRender: (state: Record<string, any>) => {
         // Automatically rotate the globe
         state.phi = phi;
         phi += 0.005;
