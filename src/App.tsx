@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import LandingPage from "@/pages/LandingPage"
+import Dashboard from "@/pages/Dashboard"
 import AdminPage from "@/pages/AdminPage"
 import ThanksPage from "@/pages/ThanksPage"
 import PricingPage from "@/pages/PricingPage"
@@ -14,6 +15,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/admin" element={<AdminPage />} />

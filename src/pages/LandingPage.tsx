@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, X } from "lucide-react"
+import { Shield, Search, Lock, AlertTriangle, CheckCircle, ImagePlus, Mic, X } from "lucide-react"
+import { Link } from "react-router-dom"
+import { recordScan } from "@/lib/metrics"
 import SEO from "@/components/SEO"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,12 +25,14 @@ export default function LandingPage() {
     const { t } = useTranslation();
     const [url, setUrl] = useState("")
     const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [audioPreview, setAudioPreview] = useState<string | null>(null)
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<null | { level: string; oneLine: string; reason: string; category?: string }>(null)
     const [showLimitModal, setShowLimitModal] = useState(false)
     const { subscription } = useSubscription()
     const [deviceId, setDeviceId] = useState("")
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const audioInputRef = useRef<HTMLInputElement>(null)
     const [tickerData, setTickerData] = useState<TickerItem[]>([])
 
     useEffect(() => {
@@ -90,9 +94,29 @@ export default function LandingPage() {
         if (fileInputRef.current) fileInputRef.current.value = ""
     }
 
+    const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+            if (file.size > 10 * 1024 * 1024) {
+                alert("Audio file size must be less than 10MB");
+                return;
+            }
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setAudioPreview(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const clearAudio = () => {
+        setAudioPreview(null)
+        if (audioInputRef.current) audioInputRef.current.value = ""
+    }
+
     const handleCheck = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url.trim() && !imagePreview) return
+        if (!url.trim() && !imagePreview && !audioPreview) return
         setIsChecking(true)
         setResult(null)
 
@@ -107,7 +131,8 @@ export default function LandingPage() {
         try {
             const payload = {
                 text: url.trim(),
-                image_base64: imagePreview ? (imagePreview as string).split(',')[1] : undefined
+                image_base64: imagePreview ? (imagePreview as string).split(',')[1] : undefined,
+                audio_base64: audioPreview ? (audioPreview as string).split(',')[1] : undefined
             }
 
             const res = await fetch("/api/analyze", {
@@ -124,6 +149,9 @@ export default function LandingPage() {
             }
 
             if (data.ok) {
+                const isThreat = data.level === "BAD" || data.level === "WARN"
+                recordScan(isThreat)
+
                 setResult({
                     level: data.level,
                     oneLine: data.oneLine,
@@ -189,21 +217,23 @@ export default function LandingPage() {
                                     <CobeGlobe className="w-64 h-64 md:w-96 md:h-96" />
 
                                     {/* Personal Security Score Overlay Widget */}
-                                    <motion.div
-                                        initial={{ scale: 0.8, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ delay: 0.5, type: "spring" }}
-                                        className="absolute bottom-4 right-4 md:bottom-12 md:right-12 bg-background/80 backdrop-blur-md border border-primary/30 p-4 rounded-2xl shadow-2xl flex flex-col items-center justify-center min-w-[140px]"
-                                    >
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Shield className="w-4 h-4 text-green-500" />
-                                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Device Score</span>
-                                        </div>
-                                        <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-green-400 to-primary">
-                                            99<span className="text-lg text-muted-foreground ml-1">%</span>
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground mt-1">Excellent Status</div>
-                                    </motion.div>
+                                    <Link to="/dashboard" className="absolute bottom-4 right-4 md:bottom-12 md:right-12 z-20 hover:scale-105 transition-transform duration-300 block">
+                                        <motion.div
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: 0.5, type: "spring" }}
+                                            className="bg-background/80 backdrop-blur-md border border-primary/30 p-4 rounded-2xl shadow-2xl flex flex-col items-center justify-center min-w-[140px]"
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Shield className="w-4 h-4 text-green-500" />
+                                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Device Score</span>
+                                            </div>
+                                            <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-green-400 to-primary">
+                                                99<span className="text-lg text-muted-foreground ml-1">%</span>
+                                            </div>
+                                            <div className="text-[10px] text-muted-foreground mt-1">Excellent Status</div>
+                                        </motion.div>
+                                    </Link>
                                 </div>
 
                                 {/* Text Content */}
@@ -267,17 +297,34 @@ export default function LandingPage() {
                                                 ref={fileInputRef}
                                                 onChange={handleImageChange}
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="absolute right-3 p-1 hover:bg-muted rounded-full transition-colors"
-                                                title="Upload Screenshot"
-                                            >
-                                                <ImagePlus className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                                            </button>
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                className="hidden"
+                                                ref={audioInputRef}
+                                                onChange={handleAudioChange}
+                                            />
+                                            <div className="absolute right-2 flex items-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="p-1.5 hover:bg-muted rounded-full transition-colors"
+                                                    title="Upload Screenshot"
+                                                >
+                                                    <ImagePlus className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => audioInputRef.current?.click()}
+                                                    className="p-1.5 hover:bg-muted rounded-full transition-colors"
+                                                    title="Upload Audio File"
+                                                >
+                                                    <Mic className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <Button id="auto-check-btn" type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking || (!url.trim() && !imagePreview)}>
+                                    <Button id="auto-check-btn" type="submit" size="lg" className="h-12 px-8 font-bold" disabled={isChecking || (!url.trim() && !imagePreview && !audioPreview)}>
                                         {isChecking ? t('common.analyzing') : t('common.start_scan')}
                                     </Button>
                                 </form>
@@ -286,6 +333,20 @@ export default function LandingPage() {
                                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="relative w-full mx-auto mt-4 rounded-xl overflow-hidden border-2 border-primary/20 bg-muted/10 p-2 flex justify-center">
                                         <img src={imagePreview} alt="Screenshot preview" className="w-auto h-auto max-h-48 object-contain rounded-md" />
                                         <button onClick={clearImage} type="button" className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 p-1.5 rounded-full shadow-md text-white transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </motion.div>
+                                )}
+
+                                {audioPreview && (
+                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="relative w-full mx-auto mt-4 rounded-xl overflow-hidden border-2 border-primary/20 bg-muted/10 p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-primary/20 p-2 rounded-full">
+                                                <Mic className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div className="text-sm font-medium text-muted-foreground">Audio Recording Ready for Analysis</div>
+                                        </div>
+                                        <button onClick={clearAudio} type="button" className="bg-red-500 hover:bg-red-600 p-1.5 rounded-full shadow-md text-white transition-colors">
                                             <X className="w-4 h-4" />
                                         </button>
                                     </motion.div>
